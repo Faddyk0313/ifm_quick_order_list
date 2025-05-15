@@ -437,7 +437,7 @@
           font-size: 1rem;
         }
 
-        .qof-mobile-meta .mobile-price {
+        .qof-mobile-meta .variant-price {
           font-size: 0.9rem;
           color: #333;
         }
@@ -781,13 +781,13 @@
           <span class="btn-text">Reset Form</span>
         </a>
 
-        <div id="qof-count">
+        <div id="qof-count" class="qof-count mobile">
           <div id="qof-count-value">0</div>
           <div>Total Items</div>
         </div>
 
         <div class="qof-taxmsg">
-          <div id="qof-subtotal">
+          <div id="qof-subtotal" class="qof-subtotal mobile">
             <span id="qof-subtotal-value">Rs 0.00</span><br />
             <small>Product subtotal</small>
           </div>
@@ -798,7 +798,6 @@
       </div>
     </section>
     <script>
-      // --- Data ---
       const productCollections = {
         Milka: [
           {
@@ -888,380 +887,440 @@
         ],
       };
 
-      // --- Common UI elements ---
       const collectionButtonsContainer =
         document.getElementById("collection-buttons");
       const currentCollectionTitle = document.getElementById(
         "qof-current-collection"
       );
+
       const collectionOrder = ["Milka", "Cadbury", "Candies"];
       let activeCollection = "Milka";
 
-      // --- Render collection buttons ---
       function renderButtons() {
         collectionButtonsContainer.innerHTML = "";
+
         collectionOrder.forEach((key) => {
-          const btn = document.createElement("button");
-          btn.textContent = key;
-          btn.className = "name-box qof-collection-btn";
-          if (key === activeCollection) btn.classList.add("selected_name");
-          btn.addEventListener("click", () => {
+          const button = document.createElement("button");
+          button.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+          button.className = "name-box qof-collection-btn";
+          if (key === activeCollection) {
+            button.classList.add("selected_name");
+          }
+          button.addEventListener("click", () => {
             activeCollection = key;
             updateActiveCollection();
           });
-          collectionButtonsContainer.appendChild(btn);
+          collectionButtonsContainer.appendChild(button);
         });
       }
 
-      // --- Update on collection change ---
       function updateActiveCollection() {
         renderButtons();
-        currentCollectionTitle.textContent = activeCollection;
+        currentCollectionTitle.textContent =
+          activeCollection.charAt(0).toUpperCase() + activeCollection.slice(1);
+
         showOnlyActiveCollectionRows(activeCollection);
-        updateCartSummary(); // desktop summary
-        updateMobileCartSummary(); // mobile summary
+        updateCartSummary();
       }
 
-      // --- Desktop: render table rows ---
       function renderAllProductRows() {
-        const tbody = document.getElementById("product-rows");
-        tbody.innerHTML = "";
-        Object.entries(productCollections).forEach(([colKey, products]) => {
-          products.forEach((product) => {
-            const tr = document.createElement("tr");
-            tr.className = "product-row";
-            tr.setAttribute("data-collection", colKey);
-            tr.innerHTML = `
-          <td class="product-info">
-            <img src="${product.image}" width="100" height="100" alt="${product.name}" />
-            <div class="product-info__meta">
-              <span class="product-info__title">${product.name}</span>
-            </div>
-          </td>
-          <td class="quantity_selector">
-            <div class="quantity-control" data-max="${product.quantity}">
-              <button type="button" class="qty-btn minus">‹</button>
-              <input type="number" min="0" max="${product.quantity}" value="0" class="qty-input variant-quantity" />
-              <button type="button" class="qty-btn plus">›</button>
-            </div>
-          </td>
-          <td class="msg">${product.message}</td>
-          <td class="price variant-price">Rs ${product.price}</td>
-          <td class="product-total variant-total align-right last">Rs 0.00</td>
-        `;
-            tbody.appendChild(tr);
-          });
-        });
-        setupQuantityListeners();
+        const rowsContainer = document.getElementById("product-rows");
+        rowsContainer.innerHTML = "";
+
+        Object.entries(productCollections).forEach(
+          ([collectionKey, products]) => {
+            products.forEach((product, index) => {
+              const row = document.createElement("tr");
+              row.className = "product-row desktop";
+
+              row.setAttribute("data-collection", collectionKey);
+
+              row.innerHTML = `
+    <td class="product-info">
+      <img src="${product.image}" width="80" height="80" alt="${product.name}" />
+      <div class="product-info__meta">
+        <span class="product-info__title">${product.name}</span>
+      </div>
+    </td>
+    <td class="quantity_selector">
+      <div class="quantity-control desktop" data-max="${product.quantity}">
+        <button type="button" class="qty-btn minus">‹</button>
+        <input type="number" min="0" max="${product.quantity}" value="0" class="qty-input variant-quantity desktop" data-index="${index}" />
+        <button type="button" class="qty-btn plus">›</button>
+      </div>
+    </td>
+
+    <td class="msg">${product.message}</td>
+    <td class="price variant-price">$ ${product.price}/cs</td>
+    <td class="product-total variant-total align-right last">$ 0.00</td>
+  `;
+
+              rowsContainer.appendChild(row);
+            });
+          }
+        );
+
+        // setupQuantityListeners();
       }
 
-      // --- Mobile: render cards ---
       function renderMobileCards() {
         const container = document.getElementById("mobile-product-list");
         container.innerHTML = "";
-        Object.entries(productCollections).forEach(([colKey, products]) => {
-          products.forEach((product) => {
-            const card = document.createElement("div");
-            card.className = "qof-mobile-product product-row";
-            card.setAttribute("data-collection", colKey);
-            card.style.display = colKey === activeCollection ? "" : "none";
-            card.innerHTML = `
-          <div class="qof-mobile-header">
-            <div class="image-title">
-              <img src="${product.image}" width="100" height="100" alt="${product.name}" />
-              <div class="qof-mobile-meta"><h3>${product.name}</h3></div>
-            </div>
-            <span class="mobile-price">Rs ${product.price}</span>
-          </div>
-          <div class="variant-stock">
-            <span class="${product.quantity === 0 ? "out-of-stock" : "in-stock"}">
-              ${product.quantity === 0 ? "Out of stock" : product.quantity + " in stock"}
-            </span>
-          </div>
-          <div class="mobile-quantity-total">
-            <div class="quantity-control ${product.quantity === 0 ? "disabled" : ""}" data-max="${product.quantity}">
-              <button type="button" class="qty-btn minus">‹</button>
-              <input type="number" min="0" max="${product.quantity}" value="0" class="qty-input variant-quantity" />
-              <button type="button" class="qty-btn plus">›</button>
-            </div>
-            <div class="variant-total">Rs 0.00</div>
-          </div>
-        `;
-            container.appendChild(card);
-          });
-        });
+
+        Object.entries(productCollections).forEach(
+          ([collectionName, products]) => {
+            products.forEach((product, index) => {
+              const wrapper = document.createElement("div");
+              wrapper.className = "qof-mobile-product product-row mobile";
+              wrapper.setAttribute("data-collection", collectionName);
+              wrapper.style.display =
+                collectionName === activeCollection ? "" : "none";
+
+              const isDisabled = product.quantity === 0;
+              const safeQty = product.quantity || 0;
+
+              wrapper.innerHTML = `
+    <div class="qof-mobile-header">
+      <div class="image-title">
+        <img src="${product.image}" width="60" height="60" alt="${product.name}" />
+        <div class="qof-mobile-meta product-info__title">
+          <h3>${product.name}</h3>
+        </div>
+      </div>
+      <span class="variant-price">Rs ${product.price}/ea</span>
+    </div>
+
+    <div class="variant-row" style="display: block;">
+
+
+      <div class="variant-stock">
+        <span class="${isDisabled ? "out-of-stock" : "in-stock"}">
+          ${isDisabled ? "Out of stock" : `${safeQty} in stock`}
+        </span>
+      </div>
+
+      <div class="mobile-quantity-total">
+        <div class="quantity-control mobile ${isDisabled ? "disabled " : ""}" data-max="${safeQty}">
+          <button type="button" class="qty-btn minus">‹</button>
+          <input type="number" min="0" max="${safeQty}" value="0" class="qty-input variant-quantity mobile" />
+          <button type="button" class="qty-btn plus">›</button>
+        </div>
+        <div class="variant-total">Rs 0.00</div>
+      </div>
+    </div>
+  `;
+
+              container.appendChild(wrapper);
+            });
+          }
+        );
+
+        // setupQuantityListeners(); // reuse desktop logic
       }
 
-      // --- Show/hide rows & cards on collection change ---
-      function showOnlyActiveCollectionRows(col) {
+      function showOnlyActiveCollectionRows(activeCollection) {
+        // Desktop rows
         document
           .querySelectorAll("#product-rows .product-row")
-          .forEach(
-            (r) =>
-              (r.style.display = r.dataset.collection === col ? "" : "none")
-          );
+          .forEach((row) => {
+            row.style.display =
+              row.getAttribute("data-collection") === activeCollection
+                ? ""
+                : "none";
+          });
+
+        // Mobile cards
         document
           .querySelectorAll("#mobile-product-list .product-row")
-          .forEach(
-            (r) =>
-              (r.style.display = r.dataset.collection === col ? "" : "none")
-          );
+          .forEach((row) => {
+            row.style.display =
+              row.getAttribute("data-collection") === activeCollection
+                ? ""
+                : "none";
+          });
       }
 
-      // --- Desktop quantity listeners & totals ---
       function setupQuantityListeners() {
         document
-          .querySelectorAll(".qof-desktop .quantity-control")
+          .querySelectorAll(".quantity-control.desktop")
           .forEach((control) => {
-            const input = control.querySelector(".qty-input"),
-              plus = control.querySelector(".plus"),
-              minus = control.querySelector(".minus"),
-              max = parseInt(control.dataset.max, 10) || 0;
+            const input = control.querySelector(".qty-input");
+            const plus = control.querySelector(".plus");
+            const minus = control.querySelector(".minus");
+            const maxQty = parseInt(control.dataset.max, 10) || 0;
+
             const updateState = () => {
-              const v = parseInt(input.value, 10) || 0;
-              if (max === 0) {
+              const val = parseInt(input.value, 10) || 0;
+
+              // Full disabled if out of stock
+              if (maxQty === 0) {
                 control.classList.add("disabled");
-                plus.disabled = minus.disabled = true;
-              } else {
-                control.classList.remove("disabled");
-                minus.disabled = v <= 0;
-                plus.disabled = v >= max;
+                plus.disabled = true;
+                minus.disabled = true;
+                return;
               }
+
+              control.classList.remove("disabled");
+
+              // Disable minus if value is 0
+              minus.disabled = val <= 0;
+
+              // Disable plus if value hits max
+              plus.disabled = val >= maxQty;
             };
+
             plus.addEventListener("click", () => {
-              if ((v = parseInt(input.value, 10) || 0) < max) {
-                input.value = v + 1;
+              let val = parseInt(input.value, 10) || 0;
+              if (val < maxQty) {
+                input.value = val + 1;
                 updateTotalFor(input);
+                updateState();
               }
-              updateState();
             });
+
             minus.addEventListener("click", () => {
-              if ((v = parseInt(input.value, 10) || 0) > 0) {
-                input.value = v - 1;
+              let val = parseInt(input.value, 10) || 0;
+              if (val > 0) {
+                input.value = val - 1;
                 updateTotalFor(input);
+                updateState();
               }
-              updateState();
             });
+
             input.addEventListener("change", () => {
-              let v = parseInt(input.value, 10) || 0;
-              if (v < 0) v = 0;
-              else if (v > max) v = max;
-              input.value = v;
+              let val = parseInt(input.value, 10) || 0;
+
+              if (val < 0) {
+                val = 0;
+              } else if (val > maxQty) {
+                val = maxQty;
+              }
+
+              input.value = val;
               updateTotalFor(input);
               updateState();
             });
-            updateState();
+
+            updateState(); // Initialize
+          });
+
+        document
+          .querySelectorAll(".quantity-control.mobile")
+          .forEach((control) => {
+            const input = control.querySelector(".qty-input");
+            const plus = control.querySelector(".plus");
+            const minus = control.querySelector(".minus");
+            const maxQty = parseInt(control.dataset.max, 10) || 0;
+
+            const updateState = () => {
+              const val = parseInt(input.value, 10) || 0;
+
+              // Full disabled if out of stock
+              if (maxQty === 0) {
+                control.classList.add("disabled");
+                plus.disabled = true;
+                minus.disabled = true;
+                return;
+              }
+
+              control.classList.remove("disabled");
+
+              // Disable minus if value is 0
+              minus.disabled = val <= 0;
+
+              // Disable plus if value hits max
+              plus.disabled = val >= maxQty;
+            };
+
+            plus.addEventListener("click", () => {
+              let val = parseInt(input.value, 10) || 0;
+              if (val < maxQty) {
+                input.value = val + 1;
+                updateState();
+                updateTotalForMobile(input);
+              }
+            });
+
+            minus.addEventListener("click", () => {
+              let val = parseInt(input.value, 10) || 0;
+              if (val > 0) {
+                input.value = val - 1;
+                updateTotalForMobile(input);
+                updateState();
+              }
+            });
+
+            input.addEventListener("change", () => {
+              let val = parseInt(input.value, 10) || 0;
+
+              if (val < 0) {
+                val = 0;
+              } else if (val > maxQty) {
+                val = maxQty;
+              }
+
+              input.value = val;
+              updateTotalForMobile(input);
+              updateState();
+            });
+
+            updateState(); // Initialize
           });
       }
 
       function updateTotalFor(input) {
-        const row = input.closest("tr.product-row"),
-          qty = parseInt(input.value, 10) || 0,
-          price =
-            parseFloat(
-              row
-                .querySelector(".variant-price")
-                .textContent.replace(/[^\d.-]/g, "")
-            ) || 0,
-          cell = row.querySelector(".variant-total");
-        cell.textContent = `Rs ${(qty * price).toFixed(2)}`;
+        const row = input.closest("tr");
+        const qty = parseInt(input.value, 10) || 0;
+        const max = parseInt(input.getAttribute("max"), 10);
+        if (qty > max) {
+          input.value = max;
+        }
+
+        const priceText = row.querySelector(".variant-price").textContent;
+        const price = parseFloat(priceText.replace(/[^\d.-]/g, ""));
+        const totalCell = row.querySelector(".variant-total");
+
+        const total = qty > 0 ? price * qty : 0;
+        totalCell.textContent = `$ ${total.toFixed(2)}`;
+
         updateCartSummary();
+      }
+      function updateTotalForMobile(input) {
+        const row = input.closest("div.product-row");
+        const qty = parseInt(input.value, 10) || 0;
+        const max = parseInt(input.getAttribute("max"), 10);
+        if (qty > max) {
+          input.value = max;
+        }
+
+        const priceText = row.querySelector(".variant-price").textContent;
+        const price = parseFloat(priceText.replace(/[^\d.-]/g, ""));
+        const totalCell = row.querySelector(".variant-total");
+
+        const total = qty > 0 ? price * qty : 0;
+        totalCell.textContent = `$ ${total.toFixed(2)}`;
+
+        updateCartSummaryForMobile();
       }
 
       function updateCartSummary() {
         let items = 0,
-          sub = 0;
+          subtotal = 0;
         document
-          .querySelectorAll(".qof-desktop .variant-quantity")
+          .querySelectorAll(".variant-quantity.desktop")
           .forEach((input) => {
-            const q = parseInt(input.value, 10) || 0;
-            if (q > 0) {
-              const row = input.closest("tr.product-row"),
-                p =
-                  parseFloat(
-                    row
-                      .querySelector(".variant-price")
-                      .textContent.replace(/[^\d.-]/g, "")
-                  ) || 0;
-              items += q;
-              sub += q * p;
+            const qty = parseInt(input.value, 10) || 0;
+            if (qty > 0) {
+              const row = input.closest("tr");
+              const priceText = row.querySelector(".variant-price").textContent;
+              const price = parseFloat(priceText.replace(/[^\d.-]/g, ""));
+              items += qty;
+              subtotal += qty * price;
             }
           });
-        document.querySelector(
-          ".qof-footer.desktop #qof-count-value"
-        ).textContent = items;
-        document.querySelector(
-          ".qof-footer.desktop #qof-subtotal-value"
-        ).textContent = `Rs ${sub.toFixed(2)}`;
-      }
 
-      // --- Mobile quantity listeners & totals ---
-      function setupMobileQuantityListeners() {
-        document
-          .querySelectorAll("#mobile-product-list .quantity-control")
-          .forEach((control) => {
-            const input = control.querySelector(".qty-input"),
-              plus = control.querySelector(".plus"),
-              minus = control.querySelector(".minus"),
-              max = parseInt(control.dataset.max, 10) || 0;
-            const updateState = () => {
-              const v = parseInt(input.value, 10) || 0;
-              if (max === 0) {
-                control.classList.add("disabled");
-                plus.disabled = minus.disabled = true;
-              } else {
-                control.classList.remove("disabled");
-                minus.disabled = v <= 0;
-                plus.disabled = v >= max;
-              }
-            };
-            plus.addEventListener("click", () => {
-              if ((v = parseInt(input.value, 10) || 0) < max) {
-                input.value = v + 1;
-                updateMobileTotalFor(input);
-              }
-              updateState();
-            });
-            minus.addEventListener("click", () => {
-              if ((v = parseInt(input.value, 10) || 0) > 0) {
-                input.value = v - 1;
-                updateMobileTotalFor(input);
-              }
-              updateState();
-            });
-            input.addEventListener("change", () => {
-              let v = parseInt(input.value, 10) || 0;
-              if (v < 0) v = 0;
-              else if (v > max) v = max;
-              input.value = v;
-              updateMobileTotalFor(input);
-              updateState();
-            });
-            updateState();
-          });
+        document.getElementById("qof-count").innerHTML =
+          `<div id='qof-count-value'>${items}</div> <div>Total Items</div>`;
+        document.getElementById("qof-subtotal").innerHTML =
+          `<span id='qof-subtotal-value'>Rs ${subtotal.toFixed(2)}</span><br><small>Product subtotal</small>`;
       }
-
-      function updateMobileTotalFor(input) {
-        const card = input.closest(".qof-mobile-product"),
-          qty = parseInt(input.value, 10) || 0,
-          price =
-            parseFloat(
-              card
-                .querySelector(".mobile-price")
-                .textContent.replace(/[^\d.-]/g, "")
-            ) || 0;
-        card.querySelector(".variant-total").textContent =
-          `Rs ${(qty * price).toFixed(2)}`;
-        updateMobileCartSummary();
-      }
-
-      function updateMobileCartSummary() {
+      function updateCartSummaryForMobile() {
         let items = 0,
-          sub = 0;
+          subtotal = 0;
         document
-          .querySelectorAll("#mobile-product-list .variant-quantity")
+          .querySelectorAll(".variant-quantity.mobile")
           .forEach((input) => {
-            const q = parseInt(input.value, 10) || 0;
-            if (q > 0) {
-              const card = input.closest(".qof-mobile-product"),
-                p =
-                  parseFloat(
-                    card
-                      .querySelector(".mobile-price")
-                      .textContent.replace(/[^\d.-]/g, "")
-                  ) || 0;
-              items += q;
-              sub += q * p;
+            const qty = parseInt(input.value, 10) || 0;
+            console.log("qty", qty, input);
+            if (qty > 0) {
+              const row = input.closest("div.product-row");
+              const priceText = row.querySelector(".variant-price").textContent;
+              const price = parseFloat(priceText.replace(/[^\d.-]/g, ""));
+              items += qty;
+              subtotal += qty * price;
+              console.log("items, subtotal", items, subtotal);
             }
           });
-        document.querySelector(
-          ".qof-footer.mobile #qof-count-value"
-        ).textContent = items;
-        document.querySelector(
-          ".qof-footer.mobile #qof-subtotal-value"
-        ).textContent = `Rs ${sub.toFixed(2)}`;
+
+        document.querySelector(".qof-count.mobile").innerHTML =
+          `<div id='qof-count-value'>${items}</div> <div>Total Items</div>`;
+        document.querySelector(".qof-subtotal.mobile").innerHTML =
+          `<span id='qof-subtotal-value'>Rs ${subtotal.toFixed(2)}</span><br><small>Product subtotal</small>`;
       }
 
-      // --- Search (desktop only) ---
-      document
-        .querySelector(".qof-desktop #qof-search-input")
-        .addEventListener("input", function () {
-          const term = this.value.trim().toLowerCase(),
-            all = document.querySelectorAll("tr.product-row"),
-            no = document.querySelector(".qof-desktop .no-results");
-          if (!term) {
-            renderAllProductRows();
-            updateActiveCollection();
-            no.style.display = "none";
-            return;
-          }
-          no.style.display = "none";
-          document
-            .querySelectorAll(".qof-collection-btn")
-            .forEach((b) => b.classList.remove("selected_name"));
-          let match = 0;
-          all.forEach((r) => {
-            const t = r
-              .querySelector(".product-info__title")
-              .textContent.trim()
-              .toLowerCase();
-            if (t.includes(term)) {
-              r.style.display = "";
-              match++;
-            } else r.style.display = "none";
-          });
-          no.style.display = match ? "none" : "table-row";
-        });
-
-      // --- Desktop clear ---
-      document
-        .querySelector(".qof-footer.desktop #qof-clear")
-        .addEventListener("click", (e) => {
-          e.preventDefault();
-          document
-            .querySelectorAll(".qof-desktop tr.product-row")
-            .forEach((r) => {
-              const i = r.querySelector(".qty-input"),
-                t = r.querySelector(".variant-total");
-              if (i) i.value = 0;
-              if (t) t.textContent = "Rs 0.00";
-            });
-          document.querySelector(
-            ".qof-footer.desktop #qof-count-value"
-          ).textContent = "0";
-          document.querySelector(
-            ".qof-footer.desktop #qof-subtotal-value"
-          ).textContent = "Rs 0.00";
-        });
-
-      // --- Mobile clear ---
-      document
-        .querySelector(".qof-footer.mobile #qof-clear")
-        .addEventListener("click", (e) => {
-          e.preventDefault();
-          document
-            .querySelectorAll("#mobile-product-list .qof-mobile-product")
-            .forEach((c) => {
-              const i = c.querySelector(".qty-input"),
-                t = c.querySelector(".variant-total");
-              if (i) i.value = 0;
-              if (t) t.textContent = "Rs 0.00";
-            });
-          document.querySelector(
-            ".qof-footer.mobile #qof-count-value"
-          ).textContent = "0";
-          document.querySelector(
-            ".qof-footer.mobile #qof-subtotal-value"
-          ).textContent = "Rs 0.00";
-        });
-
-      // --- Initialization ---
       renderAllProductRows();
       renderMobileCards();
-      updateActiveCollection();
-      // Mobile listeners & summary:
-      setupMobileQuantityListeners();
-      updateMobileCartSummary();
+      setupQuantityListeners(); // reuse desktop logic
+      updateActiveCollection(); // to show chocolates initially
+
+      const searchInput = document.getElementById("qof-search-input");
+      const noResultsRow = document.querySelector(".no-results");
+
+      searchInput.addEventListener("input", () => {
+        const term = searchInput.value.trim().toLowerCase();
+
+        let allRows;
+        if (window.innerWidth >= 1150) {
+          // desktop view
+          allRows = document.querySelectorAll(".product-row.desktop");
+        } else {
+          // mobile view
+          allRows = document.querySelectorAll(".product-row.mobile");
+        }
+
+        console.log("allRows", allRows);
+        console.log("term", term);
+        // If search is empty → reset to active collection
+        if (!term || term == "") {
+          console.log("term2", term, activeCollection);
+
+          renderAllProductRows();
+          updateActiveCollection(); // to show chocolates initially
+          noResultsRow.style.display = "block";
+          return;
+        }
+
+        noResultsRow.style.display = "none";
+
+        // Remove highlight from all collection buttons
+        document.querySelectorAll(".qof-collection-btn").forEach((btn) => {
+          btn.classList.remove("selected_name");
+        });
+
+        let matches = 0;
+
+        allRows.forEach((row) => {
+          const titleEl = row.querySelector(".product-info__title");
+          const title = titleEl ? titleEl.textContent.trim().toLowerCase() : "";
+          console.log("titleEl", titleEl)
+          console.log("title", title)
+          if (title.includes(term)) {
+            row.style.display = "block";
+            matches++;
+            console.log("matches", matches, row);
+          } else {
+            row.style.display = "none";
+          }
+        });
+
+        noResultsRow.style.display = matches ? "none" : "table-row";
+      });
+
+      document.getElementById("qof-clear").addEventListener("click", (e) => {
+        e.preventDefault(); // prevent # navigation
+
+        // Reset all quantities and totals
+        document.querySelectorAll("tr.product-row").forEach((row) => {
+          const input = row.querySelector(".qty-input");
+          const totalCell = row.querySelector(".variant-total");
+          if (input) input.value = 0;
+          if (totalCell) totalCell.textContent = "Rs 0.00";
+        });
+
+        // Reset footer summary
+        document.getElementById("qof-count-value").innerText = "0";
+        document.getElementById("qof-subtotal-value").innerText = "Rs 0.00";
+      });
     </script>
   </body>
 </html>
